@@ -5265,26 +5265,13 @@ public class MessagesController implements NotificationCenter.NotificationCenter
         int time = ConnectionsManager.getInstance(currentAccount).getCurrentTime();
         MessagesStorage.getInstance(currentAccount).createTaskForMid(mid, channelId, time, time, ttl, false);
         if (channelId != 0) {
-            TLRPC.TL_channels_readMessageContents req = new TLRPC.TL_channels_readMessageContents();
-            req.channel = inputChannel;
-            req.id.add(mid);
-            ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
-                if (newTaskId != 0) {
-                    MessagesStorage.getInstance(currentAccount).removePendingTask(newTaskId);
-                }
-            });
+            if (newTaskId != 0) {
+                MessagesStorage.getInstance(currentAccount).removePendingTask(newTaskId);
+            }
         } else {
-            TLRPC.TL_messages_readMessageContents req = new TLRPC.TL_messages_readMessageContents();
-            req.id.add(mid);
-            ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
-                if (error == null) {
-                    TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
-                    processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
-                }
-                if (newTaskId != 0) {
-                    MessagesStorage.getInstance(currentAccount).removePendingTask(newTaskId);
-                }
-            });
+            if (newTaskId != 0) {
+                MessagesStorage.getInstance(currentAccount).removePendingTask(newTaskId);
+            }
         }
     }
 
@@ -5310,46 +5297,7 @@ public class MessagesController implements NotificationCenter.NotificationCenter
         }
     }
 
-    private void completeReadTask(ReadTask task) {
-        int lower_part = (int) task.dialogId;
-        int high_id = (int) (task.dialogId >> 32);
-
-        if (lower_part != 0) {
-            TLRPC.InputPeer inputPeer = getInputPeer(lower_part);
-            TLObject req;
-            if (inputPeer instanceof TLRPC.TL_inputPeerChannel) {
-                TLRPC.TL_channels_readHistory request = new TLRPC.TL_channels_readHistory();
-                request.channel = getInputChannel(-lower_part);
-                request.max_id = task.maxId;
-                req = request;
-            } else {
-                TLRPC.TL_messages_readHistory request = new TLRPC.TL_messages_readHistory();
-                request.peer = inputPeer;
-                request.max_id = task.maxId;
-                req = request;
-            }
-            ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
-                if (error == null) {
-                    if (response instanceof TLRPC.TL_messages_affectedMessages) {
-                        TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
-                        processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
-                    }
-                }
-            });
-        } else {
-            TLRPC.EncryptedChat chat = getEncryptedChat(high_id);
-            if (chat.auth_key != null && chat.auth_key.length > 1 && chat instanceof TLRPC.TL_encryptedChat) {
-                TLRPC.TL_messages_readEncryptedHistory req = new TLRPC.TL_messages_readEncryptedHistory();
-                req.peer = new TLRPC.TL_inputEncryptedChat();
-                req.peer.chat_id = chat.id;
-                req.peer.access_hash = chat.access_hash;
-                req.max_date = task.maxDate;
-                ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
-
-                });
-            }
-        }
-    }
+    private void completeReadTask(ReadTask task) {}
 
     private void checkReadTasks() {
         long time = SystemClock.elapsedRealtime();
@@ -5358,7 +5306,6 @@ public class MessagesController implements NotificationCenter.NotificationCenter
             if (task.sendRequestTime > time) {
                 continue;
             }
-            completeReadTask(task);
             readTasks.remove(a);
             readTasksMap.remove(task.dialogId);
             a--;
@@ -5372,7 +5319,6 @@ public class MessagesController implements NotificationCenter.NotificationCenter
             if (currentReadTask == null) {
                 return;
             }
-            completeReadTask(currentReadTask);
             readTasks.remove(currentReadTask);
             readTasksMap.remove(dialogId);
         });
@@ -5383,11 +5329,6 @@ public class MessagesController implements NotificationCenter.NotificationCenter
             return;
         }
         MessagesStorage.getInstance(currentAccount).resetMentionsCount(dialogId, 0);
-        TLRPC.TL_messages_readMentions req = new TLRPC.TL_messages_readMentions();
-        req.peer = MessagesController.getInstance(currentAccount).getInputPeer((int) dialogId);
-        ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
-
-        });
     }
 
     public void markDialogAsRead(final long dialogId, final int maxPositiveId, final int maxNegativeId, final int maxDate, final boolean popup, final int countDiff, final boolean readNow) {
