@@ -68,6 +68,7 @@
 
     <application
         android:name=".ApplicationLoader"
+        android:label="@string/AppName"
         android:allowBackup="false"
         android:hardwareAccelerated="@bool/useHardwareAcceleration"
         android:icon="@drawable/ic_launcher"
