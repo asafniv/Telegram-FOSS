@@ -6,7 +6,6 @@ obj/
 local.properties
 *.keystore
 gradle.properties
-API_KEYS
 *.hprof
 TMessagesProj/.externalNativeBuild/
 TMessagesProj/libs
